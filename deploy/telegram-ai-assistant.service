@@ -1,0 +1,28 @@
+# Шаблон systemd unit-файла.
+#
+# Установка:
+#   1. Скопируй проект на сервер, например в /opt/telegram-ai-assistant
+#   2. Создай venv и установи зависимости (см. README.md)
+#   3. Отредактируй пути ниже под своё окружение
+#   4. sudo cp deploy/telegram-ai-assistant.service /etc/systemd/system/
+#   5. sudo systemctl daemon-reload
+#   6. sudo systemctl enable --now telegram-ai-assistant
+#
+# Логи:  journalctl -u telegram-ai-assistant -f
+
+[Unit]
+Description=Telegram AI Assistant Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=YOUR_LINUX_USER
+WorkingDirectory=/opt/telegram-ai-assistant
+EnvironmentFile=/opt/telegram-ai-assistant/.env
+ExecStart=/opt/telegram-ai-assistant/venv/bin/python bot.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

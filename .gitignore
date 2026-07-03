@@ -1,0 +1,20 @@
+# Секреты и локальная конфигурация
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Данные времени выполнения (история показанных новостей)
+data/*.json
+
+# Логи
+*.log
+
+# ОС / IDE
+.DS_Store
+.idea/
+.vscode/
