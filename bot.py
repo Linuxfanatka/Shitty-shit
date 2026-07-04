@@ -21,6 +21,7 @@ from handlers.common import help_command, start
 from handlers.news import news_command
 from handlers.weather import weather_command
 from modules.scheduler import setup_jobs
+from handlers.personal import remember_command, train_command, traininfo_command
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -45,6 +46,9 @@ def build_application() -> Application:
     application.add_handler(CommandHandler("news", news_command))
     application.add_handler(CommandHandler("weather", weather_command))
     application.add_handler(CommandHandler("ask", ask_command))
+    application.add_handler(CommandHandler("remember", remember_command))
+    application.add_handler(CommandHandler("train", train_command))
+    application.add_handler(CommandHandler("traininfo", traininfo_command))
 
     application.add_error_handler(error_handler)
 

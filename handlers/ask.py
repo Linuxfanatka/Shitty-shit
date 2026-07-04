@@ -1,14 +1,4 @@
-"""
-handlers/ask.py
-
-Дополнительная команда /ask <вопрос> — свободное общение с Gemini прямо
-в боте, чтобы это был не только новостной/погодный инструмент, а
-действительно личный AI-ассистент. Диалог без памяти (каждый вопрос
-обрабатывается независимо) — этого достаточно для быстрых вопросов.
-"""
-
-import logging
-
+import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -16,25 +6,28 @@ from modules.auth import restricted
 from modules.gemini_client import ask_gemini
 from modules.prompts import ASK_SYSTEM_PROMPT
 from modules.telegram_utils import safe_send
-
-logger = logging.getLogger(__name__)
-
+from modules import db
 
 @restricted
 async def ask_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    question = " ".join(context.args) if context.args else ""
-    if not question:
-        await update.message.reply_text(
-            "Напиши вопрос после команды, например:\n/ask объясни разницу между TCP и UDP"
-        )
+    if not context.args:
+        await safe_send(context.bot, update.effective_chat.id, "Напиши свой вопрос после команды <code>/ask</code>.")
         return
 
-    await update.message.chat.send_action("typing")
+    user_query = " ".join(context.args)
+    
+    # Достаем память из БД асинхронно
+    memory_facts = await asyncio.to_thread(db.get_memory)
+    
+    # Динамически собираем системный промпт
+    dynamic_prompt = ASK_SYSTEM_PROMPT
+    if memory_facts:
+        facts_str = "\n".join(f"- {fact}" for fact in memory_facts)
+        dynamic_prompt += f"\n\nВАЖНЫЙ КОНТЕКСТ О ПОЛЬЗОВАТЕЛЕ:\n{facts_str}\nУчитывай эти данные при формировании ответа, если это релевантно вопросу."
+
     try:
-        answer = await ask_gemini(ASK_SYSTEM_PROMPT, question)
-    except Exception:
-        logger.exception("Не удалось получить ответ от Gemini")
-        await update.message.reply_text("Не получилось получить ответ — сбой при обращении к нейросети.")
-        return
-
-    await safe_send(context.bot, update.effective_chat.id, answer)
+        answer = await ask_gemini(dynamic_prompt, user_query)
+        await safe_send(context.bot, update.effective_chat.id, answer)
+    except Exception as e:
+        # Логирование уже есть в gemini_client
+        await safe_send(context.bot, update.effective_chat.id, "<i>Произошла ошибка при обращении к нейросети.</i>")
